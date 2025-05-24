@@ -8,10 +8,7 @@ const db = async () => {
         }
 
         mongoose.set('strictQuery', false);
-        await mongoose.connect(process.env.MONGO_URL, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        });
+        await mongoose.connect(process.env.MONGO_URL); // 👈 no options needed
 
         console.log('✅ Database Connected Successfully');
     } catch (error) {
