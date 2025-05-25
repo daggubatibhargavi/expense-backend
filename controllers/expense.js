@@ -78,8 +78,3 @@ exports.deleteExpense = async (req, res) => {
         res.status(500).json({ message: 'Server Error', error: error.message });
     }
 };
-
-
-
-module.exports = mongoose.model('Income', IncomeSchema);
-
