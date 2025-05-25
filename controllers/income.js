@@ -1,50 +1,81 @@
-const IncomeSchema= require("../models/IncomeModel")
-
+const IncomeSchema = require("../models/IncomeModel");
 
 exports.addIncome = async (req, res) => {
-    const {title, amount, category, description, date}  = req.body
-
-    const income = IncomeSchema({
-        title,
-        amount,
-        category,
-        description,
-        date
-    })
-
+    const { title, amount, category, description, date } = req.body;
+    
     try {
-        //validations
-        if(!title || !category || !description || !date){
-            return res.status(400).json({message: 'All fields are required!'})
+        // Validations
+        if (!title || !category || !description || !date) {
+            return res.status(400).json({ message: 'All fields are required!' });
         }
-        if(amount <= 0 || !amount === 'number'){
-            return res.status(400).json({message: 'Amount must be a positive number!'})
+        
+        // Fixed validation logic - was using incorrect operator
+        if (!amount || amount <= 0 || typeof amount !== 'number') {
+            return res.status(400).json({ message: 'Amount must be a positive number!' });
         }
-        await income.save()
-        res.status(200).json({message: 'Income Added'})
+
+        // Create income with user ID from auth middleware
+        const income = new IncomeSchema({
+            title,
+            amount,
+            category,
+            description,
+            date,
+            user: req.user.id // Associate with authenticated user
+        });
+
+        await income.save();
+        res.status(201).json({ 
+            message: 'Income Added Successfully', 
+            data: income 
+        });
+        
     } catch (error) {
-        res.status(500).json({message: 'Server Error'})
+        console.error('Add Income Error:', error);
+        res.status(500).json({ message: 'Server Error', error: error.message });
     }
+};
 
-    console.log(income)
-}
-
-exports.getIncomes = async (req, res) =>{
+exports.getIncomes = async (req, res) => {
     try {
-        const incomes = await IncomeSchema.find().sort({createdAt: -1})
-        res.status(200).json(incomes)
+        // Only get incomes for the authenticated user
+        const incomes = await IncomeSchema.find({ user: req.user.id })
+            .sort({ createdAt: -1 });
+        
+        res.status(200).json({
+            success: true,
+            count: incomes.length,
+            data: incomes
+        });
+        
     } catch (error) {
-        res.status(500).json({message: 'Server Error'})
+        console.error('Get Incomes Error:', error);
+        res.status(500).json({ message: 'Server Error', error: error.message });
     }
-}
+};
 
-exports.deleteIncome = async (req, res) =>{
-    const {id} = req.params;
-    IncomeSchema.findByIdAndDelete(id)
-        .then((income) =>{
-            res.status(200).json({message: 'Income Deleted'})
-        })
-        .catch((err) =>{
-            res.status(500).json({message: 'Server Error'})
-        })
-}
+exports.deleteIncome = async (req, res) => {
+    const { id } = req.params;
+    
+    try {
+        // Check if income exists and belongs to user
+        const income = await IncomeSchema.findOne({ 
+            _id: id, 
+            user: req.user.id 
+        });
+        
+        if (!income) {
+            return res.status(404).json({ message: 'Income not found or unauthorized' });
+        }
+        
+        await IncomeSchema.findByIdAndDelete(id);
+        res.status(200).json({ 
+            message: 'Income Deleted Successfully',
+            deletedId: id
+        });
+        
+    } catch (error) {
+        console.error('Delete Income Error:', error);
+        res.status(500).json({ message: 'Server Error', error: error.message });
+    }
+};
