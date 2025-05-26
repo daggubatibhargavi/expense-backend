@@ -7,7 +7,8 @@ const router = require('express').Router();
 // ============================
 // AUTHENTICATION ROUTES (Public)
 // ============================
-router.post('/register', registerUser);
+router.post('/signup', registerUser);
+
 router.post('/login', loginUser);
 router.get('/profile', authMiddleware, getUserProfile);
 
